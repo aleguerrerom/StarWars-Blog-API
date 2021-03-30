@@ -32,42 +32,46 @@ def sitemap():
 
 @app.route('/user', methods=['GET'])
 def handle_hello():
+    
+    result = User.query.all()
+    all_users = list(map(lambda x: x.serialize(),result))
+
+    return jsonify(all_users), 200
+    
+#ADD PEOPLE
+@app.route('/addpeople', methods=['POST'])
+def add_people():
     request_body = request.get_json()
-    user = User(name=request_body["name"])
-    db.session.add(user)
+    people = Character(name=request_body["name"],height=request_body["height"],
+    mass=request_body["mass"],hair=request_body["hair"],
+    gender=request_body["gender"],skin=request_body["skin"],eye=request_body["eye"],
+    birth=request_body["birth"])
+    db.session.add(people)
     db.session.commit()
     response_body = {
-        "msg": "Hello, this is your GET /user response "
+        "msg": "Hello, this is your POST /add user response "
     }
-
     return jsonify(response_body), 200
 
-@app.route('/user', methods=['POST'])
-def Add_user():
-
-    response_body = {
-        "msg": "Hello, this is your GET /add user response "
-    }
-
-    return jsonify(response_body), 200
 
 @app.route('/people', methods=['GET'])
 def get_people():
+    result = Character.query.all()
+    all_people = list(map(lambda x: x.serialize(),result))
 
-    response_body = {
-        "msg": "Hello, this is your GET /people response "
-    }
+    return jsonify(all_people), 200
 
-    return jsonify(response_body), 200
+
+
+
 
 @app.route('/planets', methods=['GET'])
 def get_planets():
 
-    response_body = {
-        "msg": "Hello, this is your GET /planets response "
-    }
+    result = Planets.query.all()
+    all_planets = list(map(lambda x: x.serialize(),result))
 
-    return jsonify(response_body), 200
+    return jsonify(all_planets), 200
 
 
 # this only runs if `$ python src/main.py` is executed
