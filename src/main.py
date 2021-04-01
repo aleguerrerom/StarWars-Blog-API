@@ -53,7 +53,6 @@ def add_people():
     }
     return jsonify(response_body), 200
 
-
 @app.route('/people', methods=['GET'])
 def get_people():
     result = Character.query.all()
@@ -61,9 +60,11 @@ def get_people():
 
     return jsonify(all_people), 200
 
-
-
-
+@app.route('/people/<int:id>', methods=['GET'])
+def get_people_byID(id):
+    result = Character.query.get(id)
+    people = list(map(lambda x: x.serialize(),result))
+    return jsonify(people), 200
 
 @app.route('/planets', methods=['GET'])
 def get_planets():
