@@ -53,12 +53,22 @@ def add_people():
     }
     return jsonify(response_body), 200
 
+#GET PEOPLE
 @app.route('/people', methods=['GET'])
 def get_people():
     result = Character.query.all()
     all_people = list(map(lambda x: x.serialize(),result))
 
     return jsonify(all_people), 200
+
+#GET PEOPLE BY ID
+@app.route('/people/<int:id>', methods=['GET'])
+def get_people_by_id(id):
+    item = Character.query.get(id)
+    if item is None:
+        raise APIException("People Not Found", status_code=404)
+
+    return jsonify(item.serialize()), 200
 
 @app.route('/people/<int:id>', methods=['GET'])
 def get_people_byID(id):
@@ -74,6 +84,14 @@ def get_planets():
 
     return jsonify(all_planets), 200
 
+#GET PEOPLE BY ID
+@app.route('/planets/<int:id>', methods=['GET'])
+def get_planet_by_id(id):
+    item = Planets.query.get(id)
+    if item is None:
+        raise APIException("Planet Not Found", status_code=404)
+
+    return jsonify(item.serialize()), 200
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
