@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Character, Planets
+from models import db, User, Character, Planet, PlanetFavorite, CharacterFavorite
 #from models import Person
 
 app = Flask(__name__)
@@ -30,68 +30,131 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/user', methods=['GET'])
-def handle_hello():
-    
-    result = User.query.all()
-    all_users = list(map(lambda x: x.serialize(),result))
+@app.route('/users', methods=['GET'])
+def get_users():
+    # get all the people
+    users_alls = User.query.all()
 
-    return jsonify(all_users), 200
-    
-#ADD PEOPLE
-@app.route('/addpeople', methods=['POST'])
-def add_people():
-    request_body = request.get_json()
-    people = Character(name=request_body["name"],height=request_body["height"],
-    mass=request_body["mass"],hair=request_body["hair"],
-    gender=request_body["gender"],skin=request_body["skin"],eye=request_body["eye"],
-    birth=request_body["birth"])
-    db.session.add(people)
-    db.session.commit()
-    response_body = {
-        "msg": "Hello, this is your POST /add user response "
-    }
-    return jsonify(response_body), 200
+    # map the results and your list of people  inside of the all_people variable
+    result = list(map(lambda x: x.serialize(), users_alls))
 
-#GET PEOPLE
+    return jsonify(result), 200
+
+@app.route('/users/<int:id>/favorites', methods=['GET'])
+def get_user_favorites(id):
+    # get all the people
+    item = User.query.get(id)
+
+    if item is None:
+        raise APIException('User not found', status_code=404)
+
+    return jsonify(item.serializeFavorites()), 200
+
 @app.route('/people', methods=['GET'])
 def get_people():
-    result = Character.query.all()
-    all_people = list(map(lambda x: x.serialize(),result))
+    # get all the people
+    people_alls = Character.query.all()
 
-    return jsonify(all_people), 200
+    # map the results and your list of people  inside of the all_people variable
+    result = list(map(lambda x: x.serialize(), people_alls))
 
-#GET PEOPLE BY ID
+    return jsonify(result), 200
+
 @app.route('/people/<int:id>', methods=['GET'])
-def get_people_by_id(id):
+def get_people_detail(id):
+    # get all the people
     item = Character.query.get(id)
+
     if item is None:
-        raise APIException("People Not Found", status_code=404)
+        raise APIException('Character not found', status_code=404)
 
     return jsonify(item.serialize()), 200
-
-@app.route('/people/<int:id>', methods=['GET'])
-def get_people_byID(id):
-    result = Character.query.get(id)
-    people = list(map(lambda x: x.serialize(),result))
-    return jsonify(people), 200
 
 @app.route('/planets', methods=['GET'])
 def get_planets():
+    # get all the people
+    planets_alls = Planet.query.all()
 
-    result = Planets.query.all()
-    all_planets = list(map(lambda x: x.serialize(),result))
+    # map the results and your list of people  inside of the all_people variable
+    result = list(map(lambda x: x.serialize(), planets_alls))
 
-    return jsonify(all_planets), 200
+    return jsonify(result), 200
 
-#GET PEOPLE BY ID
 @app.route('/planets/<int:id>', methods=['GET'])
-def get_planet_by_id(id):
-    item = Planets.query.get(id)
+def get_planet_detail(id):
+    # get all the people
+    item = Planet.query.get(id)
+
     if item is None:
-        raise APIException("Planet Not Found", status_code=404)
+        raise APIException('Planet not found', status_code=404)
 
     return jsonify(item.serialize()), 200
+
+
+@app.route('/users/<int:id>/favorites', methods=['POST'])
+def add_favorites(id):
+    # get all the people
+    item = User.query.get(id)
+    body = request.get_json()
+
+    if item is None:
+        raise APIException('User not found', status_code=404)
+    if body is None:
+        raise APIException("You need to specify the request body as a json object", status_code=400)
+    if 'Type' not in body:
+        raise APIException('Type of favorite is not defined', status_code=400)
+    if 'itemID' not in body:
+        raise APIException("Favorite's ID is not defined", status_code=400)
+
+    if(body['Type'] == "Planet"):
+        planetid = Planet.query.get(body["itemID"])
+        if planetid is None:
+            raise APIException('Planet not exists', status_code=404)
+        else:
+            newFavPlanet = PlanetFavorite(userid = id,planetid = body["itemID"])
+            db.session.add(newFavPlanet)
+            db.session.commit()
+    else:
+        characterid = Character.query.get(body["itemID"])
+        if characterid is None:
+            raise APIException('Character not exists', status_code=404)
+        else:
+            newFavPeople = CharacterFavorite(userid = id, characterid = body["itemID"])
+            db.session.add(newFavPeople)
+            db.session.commit()
+            
+    return "OK", 200
+
+@app.route('/favorite/<int:id>', methods=['DELETE'])
+def remove_favorites(id):
+    # get all the people
+    body = request.get_json()
+
+    if body is None:
+        raise APIException('You need to specify in the request body the kind of favorite', status_code=404)
+        
+    if 'Type' not in body:
+        raise APIException('Type of favorite is not defined', status_code=400)
+
+    if body['Type'] != "Planet" and body['Type'] != "Character":
+        raise APIException("The kind of favorite is not allowed", status_code=400)
+
+    if(body['Type'] == "Planet"):
+        favID = PlanetFavorite.query.get(id)
+        if favID is None:
+            raise APIException('Favorite not exists', status_code=404)
+        else:
+            db.session.delete(favID)
+            db.session.commit()
+    else:
+        favID = CharacterFavorite.query.get(id)
+        if favID is None:
+            raise APIException('Favorite not exists', status_code=404)
+        else:
+            db.session.delete(favID)
+            db.session.commit()
+            
+    return jsonify("Task deleted successfully."), 200
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
